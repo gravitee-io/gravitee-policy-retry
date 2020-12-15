@@ -1,0 +1,43 @@
+{
+  "type" : "object",
+  "id" : "urn:jsonschema:io:gravitee:policy:retry:configuration:RetryPolicyConfiguration",
+  "properties": {
+    "condition" : {
+      "title": "Retry condition",
+      "description": "The condition to check to retry or not the request (supports EL)",
+      "type" : "string"
+    },
+    "maxRetries": {
+      "title": "Max attempts",
+      "description": "Number of attempts before failing (502 - Bad Gateway)",
+      "type" : "integer",
+      "default": 1,
+      "minimum": 1
+    },
+    "delay": {
+      "title": "Delay (ms)",
+      "description": "The delay between each attempt",
+      "default": 0,
+      "type" : "integer",
+      "minimum": 0
+    },
+    "timeout": {
+      "title": "Timeout (ms)",
+      "description": "Consider a failure if a retry attempt does not succeed in time",
+      "default": 1000,
+      "type" : "integer",
+      "minimum": 0
+    },
+    "lastResponse": {
+      "title": "Send last attempt response",
+      "description": "Returns the last attempt response, even if it's a failure.",
+      "type" : "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "condition",
+    "maxRetries",
+    "timeout"
+  ]
+}
