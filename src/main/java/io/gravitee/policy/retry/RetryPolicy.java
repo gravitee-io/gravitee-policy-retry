@@ -36,7 +36,6 @@ import io.vertx.circuitbreaker.CircuitBreakerOptions;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -47,8 +46,8 @@ public class RetryPolicy {
 
     private final RetryPolicyConfiguration configuration;
 
-    private final static String CIRCUIT_BREAKER_NAME = "retry-policy";
-    private final static String TEMPLATE_RESPONSE_VARIABLE = "response";
+    private static final String CIRCUIT_BREAKER_NAME = "retry-policy";
+    private static final String TEMPLATE_RESPONSE_VARIABLE = "response";
 
     public RetryPolicy(RetryPolicyConfiguration configuration) {
         this.configuration = configuration;
@@ -59,7 +58,7 @@ public class RetryPolicy {
         final Invoker defaultInvoker = (Invoker) context.getAttribute(ExecutionContext.ATTR_INVOKER);
         context.setAttribute(ExecutionContext.ATTR_INVOKER, new RetryInvoker(defaultInvoker, configuration));
 
-        ((MutableExecutionContext)context).request(new RetryRequest(context.request()));
+        ((MutableExecutionContext) context).request(new RetryRequest(context.request()));
         chain.doNext(context.request(), context.response());
     }
 
@@ -77,11 +76,14 @@ public class RetryPolicy {
         public void invoke(ExecutionContext context, ReadStream<Buffer> readStream, Handler<ProxyConnection> handler) {
             Vertx vertx = context.getComponent(Vertx.class);
 
-            CircuitBreaker circuitBreaker = CircuitBreaker
-                    .create(CIRCUIT_BREAKER_NAME, vertx, new CircuitBreakerOptions()
-                            .setMaxRetries(configuration.getMaxRetries()) // number of failure before opening the circuit
-                            .setTimeout(configuration.getTimeout()) // consider a failure if the operation does not succeed in time
-                            .setNotificationAddress(null));
+            CircuitBreaker circuitBreaker = CircuitBreaker.create(
+                CIRCUIT_BREAKER_NAME,
+                vertx,
+                new CircuitBreakerOptions()
+                    .setMaxRetries(configuration.getMaxRetries()) // number of failure before opening the circuit
+                    .setTimeout(configuration.getTimeout()) // consider a failure if the operation does not succeed in time
+                    .setNotificationAddress(null)
+            );
 
             if (configuration.getDelay() > 0) {
                 circuitBreaker.retryPolicy(integer -> configuration.getDelay());
@@ -89,38 +91,50 @@ public class RetryPolicy {
 
             final AtomicInteger counter = new AtomicInteger();
 
-            circuitBreaker.execute(event -> {
-                counter.incrementAndGet();
+            circuitBreaker.execute(
+                event -> {
+                    counter.incrementAndGet();
 
-                // Listen for the response from backend
-                invoker.invoke(context, readStream, connection -> {
-                    connection
-                            .exceptionHandler(event::fail)
-                            .responseHandler(proxyResponse -> {
-                                context.getTemplateEngine().getTemplateContext().setVariable(TEMPLATE_RESPONSE_VARIABLE, new EvaluableProxyResponse(proxyResponse));
-                                boolean retry = context.getTemplateEngine().getValue(configuration.getCondition(), boolean.class);
-                                if (retry) {
-                                    if (configuration.isLastResponse() && counter.get() == configuration.getMaxRetries()) {
-                                        event.complete(new RetryProxyConnection(connection, proxyResponse));
-                                    } else {
-                                        event.fail("");
+                    // Listen for the response from backend
+                    invoker.invoke(
+                        context,
+                        readStream,
+                        connection -> {
+                            connection
+                                .exceptionHandler(event::fail)
+                                .responseHandler(
+                                    proxyResponse -> {
+                                        context
+                                            .getTemplateEngine()
+                                            .getTemplateContext()
+                                            .setVariable(TEMPLATE_RESPONSE_VARIABLE, new EvaluableProxyResponse(proxyResponse));
+                                        boolean retry = context.getTemplateEngine().getValue(configuration.getCondition(), boolean.class);
+                                        if (retry) {
+                                            if (configuration.isLastResponse() && counter.get() == configuration.getMaxRetries()) {
+                                                event.complete(new RetryProxyConnection(connection, proxyResponse));
+                                            } else {
+                                                event.fail("");
+                                            }
+                                        } else {
+                                            event.complete(new RetryProxyConnection(connection, proxyResponse));
+                                        }
                                     }
-                                } else {
-                                    event.complete(new RetryProxyConnection(connection, proxyResponse));
-                                }
-                            });
-                });
-            }, (io.vertx.core.Handler<AsyncResult<RetryProxyConnection>>) event -> {
-                if (event.succeeded()) {
-                    RetryProxyConnection connection = event.result();
-                    handler.handle(connection);
-                    connection.sendResponse();
-                } else {
-                    DirectProxyConnection connection = new DirectProxyConnection(HttpStatusCode.BAD_GATEWAY_502);
-                    handler.handle(connection);
-                    connection.sendResponse();
+                                );
+                        }
+                    );
+                },
+                (io.vertx.core.Handler<AsyncResult<RetryProxyConnection>>) event -> {
+                    if (event.succeeded()) {
+                        RetryProxyConnection connection = event.result();
+                        handler.handle(connection);
+                        connection.sendResponse();
+                    } else {
+                        DirectProxyConnection connection = new DirectProxyConnection(HttpStatusCode.BAD_GATEWAY_502);
+                        handler.handle(connection);
+                        connection.sendResponse();
+                    }
                 }
-            });
+            );
         }
     }
 
