@@ -1,0 +1,90 @@
+= Retry Policy
+
+ifdef::env-github[]
+image:https://ci.gravitee.io/buildStatus/icon?job=gravitee-io/gravitee-policy-retry/master["Build status", link="https://ci.gravitee.io/job/gravitee-io/job/gravitee-policy-retry/"]
+image:https://badges.gitter.im/Join Chat.svg["Gitter", link="https://gitter.im/gravitee-io/gravitee-io?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"]
+endif::[]
+
+== Phase
+
+[cols="2*", options="header"]
+|===
+^|onRequest
+^|onResponse
+
+^.^| X
+^.^| -
+
+|===
+
+== Description
+
+The retry policy allows to replay request in case of connection issues with the backend or if the response
+meets a given `condition`.
+
+If retry takes too long time, depending on the `timeout`, the request is ending.
+
+NOTE: To replay a request with a payload, the gateway is storing it in memory. Please avoid to apply it for request with a large payload.
+
+== Configuration
+
+|===
+|Property |Required |Description |Default |Example
+
+.^|condition
+^.^|X
+|The condition to check to retry or not the request (supports EL)
+^.^| -
+^.^| {#response.status > 400}
+
+.^|maxRetries
+^.^|X
+|Number of retries before failing (502 - Bad Gateway)
+^.^| 1
+^.^| -
+
+.^|delay
+^.^| -
+|The delay between each attempt
+^.^| 0
+^.^| -
+
+.^|timeout
+^.^|X
+|Consider a failure if the operation does not succeed in time
+^.^| 1000
+^.^| -
+
+.^|lastResponse
+^.^|-
+|Returns the last attempt response, even if it's a failure.
+^.^| false
+^.^| -
+
+|===
+
+
+[source, json]
+.Retry Policy example:
+----
+{
+  "retry": {
+    "condition": "{#response.status > 400}",
+    "maxRetries": 3,
+    "timeout": 1000
+  }
+}
+----
+
+== Http Status Code
+
+|===
+|Code |Message
+
+.^| ```502```
+| In case of:
+
+* No response satisfies the condition after `maxRetries`
+
+* Technical errors when calling the backend (connection refused, timeout, ...)
+|===
