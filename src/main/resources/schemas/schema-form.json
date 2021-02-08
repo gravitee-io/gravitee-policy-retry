@@ -5,7 +5,10 @@
     "condition" : {
       "title": "Retry condition",
       "description": "The condition to check to retry or not the request (supports EL)",
-      "type" : "string"
+      "type" : "string",
+      "x-schema-form": {
+        "expression-language": true
+      }
     },
     "maxRetries": {
       "title": "Max attempts",
