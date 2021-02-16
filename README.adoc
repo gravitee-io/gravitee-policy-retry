@@ -1,8 +1,8 @@
-= Retry Policy
+= Retry policy
 
 ifdef::env-github[]
-image:https://ci.gravitee.io/buildStatus/icon?job=gravitee-io/gravitee-policy-retry/master["Build status", link="https://ci.gravitee.io/job/gravitee-io/job/gravitee-policy-retry/"]
-image:https://badges.gitter.im/Join Chat.svg["Gitter", link="https://gitter.im/gravitee-io/gravitee-io?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"]
+image:https://img.shields.io/badge/License-Apache%202.0-blue.svg["License", link="https://github.com/gravitee-io/gravitee-policy-retry /blob/master/LICENSE.txt"]
+image:https://circleci.com/gh/gravitee-io/gravitee-policy-retry.svg?style=svg["CircleCI", link="https://circleci.com/gh/gravitee-io/gravitee-policy-retry"]
 endif::[]
 
 == Phase
@@ -19,12 +19,15 @@ endif::[]
 
 == Description
 
-The retry policy allows to replay request in case of connection issues with the backend or if the response
-meets a given `condition`.
+You can use the `retry` policy to replay requests when experiencing backend connection issues or if the response meets a given _condition_.
 
-If retry takes too long time, depending on the `timeout`, the request is ending.
+If the retry takes too long, relative to the `timeout` value, the request stops.
 
-NOTE: To replay a request with a payload, the gateway is storing it in memory. Please avoid to apply it for request with a large payload.
+NOTE: To replay a request with a payload, the gateway stores it in memory. We recommend you avoid applying it to requests with a large payload.
+
+=== Policy identifier
+
+You can enable or disable the policy with policy identifier `retry`.
 
 == Configuration
 
@@ -33,7 +36,7 @@ NOTE: To replay a request with a payload, the gateway is storing it in memory. P
 
 .^|condition
 ^.^|X
-|The condition to check to retry or not the request (supports EL)
+|Condition to test to determine whether or not to retry the request (supports Expression Language)
 ^.^| -
 ^.^| {#response.status > 400}
 
@@ -45,19 +48,19 @@ NOTE: To replay a request with a payload, the gateway is storing it in memory. P
 
 .^|delay
 ^.^| -
-|The delay between each attempt
+|Time between each attempt
 ^.^| 0
 ^.^| -
 
 .^|timeout
 ^.^|X
-|Consider a failure if the operation does not succeed in time
+|Time after which an operation is considered a failure
 ^.^| 1000
 ^.^| -
 
 .^|lastResponse
 ^.^|-
-|Returns the last attempt response, even if it's a failure.
+|Returns the last attempt response, even if it failed
 ^.^| false
 ^.^| -
 
@@ -76,15 +79,19 @@ NOTE: To replay a request with a payload, the gateway is storing it in memory. P
 }
 ----
 
-== Http Status Code
+== Errors
+
+=== HTTP status code
 
 |===
-|Code |Message
+|Code |Reason
 
 .^| ```502```
-| In case of:
+a|
+
+Received in the following cases:
 
 * No response satisfies the condition after `maxRetries`
+* Technical errors when calling the backend (for example, connection refused, timeout)
 
-* Technical errors when calling the backend (connection refused, timeout, ...)
 |===
