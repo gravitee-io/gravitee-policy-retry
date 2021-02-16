@@ -34,7 +34,7 @@ NOTE: To replay a request with a payload, the gateway stores it in memory. We re
 ^.^|X
 |Condition to test to determine whether or not to retry the request (supports Expression Language)
 ^.^| -
-^.^| {#response.status > 400}
+^.^| `{#response.status > 400}`
 
 .^|maxRetries
 ^.^|X
@@ -80,12 +80,13 @@ NOTE: To replay a request with a payload, the gateway stores it in memory. We re
 === HTTP status code
 
 |===
-|Code |Reason
+|Code
+|Reason
 
-.^| ```502```
+| ```502```
 |
 
-* No response satisfies the condition after `maxRetries`
-* Technical errors when calling the backend (for example, connection refused, timeout)
+- No response satisfies the condition after `maxRetries`
+- Technical errors when calling the backend (for example, connection refused, timeout)
 
 |===
