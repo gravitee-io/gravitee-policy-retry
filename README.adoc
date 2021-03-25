@@ -25,6 +25,10 @@ If the retry takes too long, relative to the `timeout` value, the request stops.
 
 NOTE: To replay a request with a payload, the gateway stores it in memory. We recommend you avoid applying it to requests with a large payload.
 
+=== Policy identifier
+
+You can enable or disable the policy with policy identifier `retry`.
+
 == Configuration
 
 |===
