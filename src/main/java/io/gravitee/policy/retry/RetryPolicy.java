@@ -22,6 +22,7 @@ import io.gravitee.gateway.api.ExecutionContext;
 import io.gravitee.gateway.api.Invoker;
 import io.gravitee.gateway.api.buffer.Buffer;
 import io.gravitee.gateway.api.context.MutableExecutionContext;
+import io.gravitee.gateway.api.el.EvaluableResponse;
 import io.gravitee.gateway.api.handler.Handler;
 import io.gravitee.gateway.api.proxy.ProxyConnection;
 import io.gravitee.gateway.api.proxy.ProxyResponse;
@@ -30,11 +31,10 @@ import io.gravitee.gateway.api.stream.WriteStream;
 import io.gravitee.policy.api.PolicyChain;
 import io.gravitee.policy.api.annotations.OnRequest;
 import io.gravitee.policy.retry.configuration.RetryPolicyConfiguration;
-import io.gravitee.policy.retry.el.EvaluableProxyResponse;
+import io.gravitee.policy.retry.el.ProxyResponseWrapper;
 import io.vertx.circuitbreaker.CircuitBreaker;
 import io.vertx.circuitbreaker.CircuitBreakerOptions;
 import io.vertx.core.AsyncResult;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -83,6 +83,7 @@ public class RetryPolicy {
                     .setMaxRetries(configuration.getMaxRetries()) // number of failure before opening the circuit
                     .setTimeout(configuration.getTimeout()) // consider a failure if the operation does not succeed in time
                     .setNotificationAddress(null)
+                    .setNotificationPeriod(0)
             );
 
             if (configuration.getDelay() > 0) {
@@ -107,12 +108,18 @@ public class RetryPolicy {
                                         context
                                             .getTemplateEngine()
                                             .getTemplateContext()
-                                            .setVariable(TEMPLATE_RESPONSE_VARIABLE, new EvaluableProxyResponse(proxyResponse));
+                                            .setVariable(
+                                                TEMPLATE_RESPONSE_VARIABLE,
+                                                // Note: we must create a EvaluableResponse and a ProxyResponseWrapper to make sure classloader will be well released when the api is undeployed.
+                                                new EvaluableResponse(new ProxyResponseWrapper(proxyResponse))
+                                            );
                                         boolean retry = context.getTemplateEngine().getValue(configuration.getCondition(), boolean.class);
                                         if (retry) {
                                             if (configuration.isLastResponse() && counter.get() == configuration.getMaxRetries()) {
                                                 event.complete(new RetryProxyConnection(connection, proxyResponse));
                                             } else {
+                                                // Cleanup by cancelling the proxyResponse (request tracker, ...).
+                                                proxyResponse.cancel();
                                                 event.fail("");
                                             }
                                         } else {
@@ -124,6 +131,8 @@ public class RetryPolicy {
                     );
                 },
                 (io.vertx.core.Handler<AsyncResult<RetryProxyConnection>>) event -> {
+                    circuitBreaker.close();
+
                     if (event.succeeded()) {
                         RetryProxyConnection connection = event.result();
                         handler.handle(connection);
