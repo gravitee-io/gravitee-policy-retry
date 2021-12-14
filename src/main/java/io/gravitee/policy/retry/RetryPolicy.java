@@ -103,30 +103,28 @@ public class RetryPolicy {
                         connection -> {
                             connection
                                 .exceptionHandler(event::fail)
-                                .responseHandler(
-                                    proxyResponse -> {
-                                        context
-                                            .getTemplateEngine()
-                                            .getTemplateContext()
-                                            .setVariable(
-                                                TEMPLATE_RESPONSE_VARIABLE,
-                                                // Note: we must create a EvaluableResponse and a ProxyResponseWrapper to make sure classloader will be well released when the api is undeployed.
-                                                new EvaluableResponse(new ProxyResponseWrapper(proxyResponse))
-                                            );
-                                        boolean retry = context.getTemplateEngine().getValue(configuration.getCondition(), boolean.class);
-                                        if (retry) {
-                                            if (configuration.isLastResponse() && counter.get() == configuration.getMaxRetries()) {
-                                                event.complete(new RetryProxyConnection(connection, proxyResponse));
-                                            } else {
-                                                // Cleanup by cancelling the proxyResponse (request tracker, ...).
-                                                proxyResponse.cancel();
-                                                event.fail("");
-                                            }
-                                        } else {
+                                .responseHandler(proxyResponse -> {
+                                    context
+                                        .getTemplateEngine()
+                                        .getTemplateContext()
+                                        .setVariable(
+                                            TEMPLATE_RESPONSE_VARIABLE,
+                                            // Note: we must create a EvaluableResponse and a ProxyResponseWrapper to make sure classloader will be well released when the api is undeployed.
+                                            new EvaluableResponse(new ProxyResponseWrapper(proxyResponse))
+                                        );
+                                    boolean retry = context.getTemplateEngine().getValue(configuration.getCondition(), boolean.class);
+                                    if (retry) {
+                                        if (configuration.isLastResponse() && counter.get() == configuration.getMaxRetries()) {
                                             event.complete(new RetryProxyConnection(connection, proxyResponse));
+                                        } else {
+                                            // Cleanup by cancelling the proxyResponse (request tracker, ...).
+                                            proxyResponse.cancel();
+                                            event.fail("");
                                         }
+                                    } else {
+                                        event.complete(new RetryProxyConnection(connection, proxyResponse));
                                     }
-                                );
+                                });
                         }
                     );
                 },
