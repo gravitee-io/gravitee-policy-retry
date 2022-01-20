@@ -1,6 +1,7 @@
 {
   "extends": [
-    "config:base"
+    "config:base",
+    ":preserveSemverRanges"
   ],
   "prConcurrentLimit": 3,
   "rebaseWhen": "conflicted"
