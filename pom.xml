@@ -179,7 +179,7 @@
                 <version>0.17</version>
                 <configuration>
                     <nodeVersion>12.13.0</nodeVersion>
-                    <prettierJavaVersion>1.5.0</prettierJavaVersion>
+                    <prettierJavaVersion>1.6.1</prettierJavaVersion>
                 </configuration>
                 <executions>
                     <execution>
