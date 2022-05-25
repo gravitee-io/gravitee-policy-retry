@@ -23,7 +23,7 @@ endif::[]
 
 You can use the `retry` policy to replay requests when experiencing backend connection issues or if the response meets a given _condition_.
 
-If the retry takes too long, relative to the `timeout` value, the request stops.
+If the retry takes too long, relative to the `timeout` value, the request stops and returns status code `502`.
 
 NOTE: To replay a request with a payload, the gateway stores it in memory. We recommend you avoid applying it to requests with a large payload.
 
@@ -40,7 +40,7 @@ You can enable or disable the policy with policy identifier `retry`.
 ^.^|X
 |Condition to test to determine whether or not to retry the request (supports Expression Language)
 ^.^| -
-^.^| {#response.status > 400}
+^.^| {#response.status > 500}
 
 .^|maxRetries
 ^.^|X
@@ -62,7 +62,7 @@ You can enable or disable the policy with policy identifier `retry`.
 
 .^|lastResponse
 ^.^|-
-|Returns the last attempt response, even if it failed
+|Returns the last attempt response, even if it failed regarding the configured condition. In timeout case, `502` is returned.
 ^.^| false
 ^.^| -
 
@@ -74,7 +74,7 @@ You can enable or disable the policy with policy identifier `retry`.
 ----
 {
   "retry": {
-    "condition": "{#response.status > 400}",
+    "condition": "{#response.status > 500}",
     "maxRetries": 3,
     "timeout": 1000
   }
