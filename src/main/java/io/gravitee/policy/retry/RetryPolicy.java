@@ -38,6 +38,7 @@ import io.vertx.circuitbreaker.CircuitBreakerOptions;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Vertx;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
@@ -91,7 +92,10 @@ public class RetryPolicy {
                 circuitBreaker.retryPolicy(integer -> configuration.getDelay());
             }
 
-            final AtomicInteger counter = new AtomicInteger();
+            // The circuit breaker is used for the first real call to the backend, before the retries.
+            // Setting it to -1 prevent to count this first call as a retry.
+            final AtomicInteger counter = new AtomicInteger(-1);
+            final AtomicReference<ProxyResponse> proxyResponseRef = new AtomicReference<>();
 
             circuitBreaker.execute(
                 event -> {
@@ -105,6 +109,8 @@ public class RetryPolicy {
                             connection
                                 .exceptionHandler(event::fail)
                                 .responseHandler(proxyResponse -> {
+                                    // cancel the previous proxyResponse if it exists
+                                    cancelProxyResponse(proxyResponseRef.getAndSet(proxyResponse));
                                     context
                                         .getTemplateEngine()
                                         .getTemplateContext()
@@ -114,6 +120,7 @@ public class RetryPolicy {
                                             new EvaluableResponse(new ProxyResponseWrapper(proxyResponse))
                                         );
                                     boolean retry = context.getTemplateEngine().getValue(configuration.getCondition(), boolean.class);
+
                                     if (retry) {
                                         if (configuration.isLastResponse() && counter.get() == configuration.getMaxRetries()) {
                                             event.complete(new RetryProxyConnection(connection, proxyResponse));
@@ -137,12 +144,20 @@ public class RetryPolicy {
                         handler.handle(connection);
                         connection.sendResponse();
                     } else {
+                        // failure: we have to cancel the proxyResponse if it's in timeout.
+                        cancelProxyResponse(proxyResponseRef.get());
                         DirectProxyConnection connection = new DirectProxyConnection(HttpStatusCode.BAD_GATEWAY_502);
                         handler.handle(connection);
                         connection.sendResponse();
                     }
                 }
             );
+        }
+
+        private void cancelProxyResponse(ProxyResponse previous) {
+            if (previous != null) {
+                previous.cancel();
+            }
         }
     }
 
