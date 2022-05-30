@@ -1,3 +1,10 @@
+## [2.1.2](https://github.com/gravitee-io/gravitee-policy-retry/compare/2.1.1...2.1.2) (2022-05-30)
+
+
+### Bug Fixes
+
+* fix retry counter start value and previous response canceling ([6cffe6e](https://github.com/gravitee-io/gravitee-policy-retry/commit/6cffe6e550a783331ec54e26e25cea5abb0e3487))
+
 ## [2.1.1](https://github.com/gravitee-io/gravitee-policy-retry/compare/2.1.0...2.1.1) (2022-05-10)
 
 
