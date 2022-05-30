@@ -27,6 +27,15 @@ If the retry takes too long, relative to the `timeout` value, the request stops 
 
 NOTE: To replay a request with a payload, the gateway stores it in memory. We recommend you avoid applying it to requests with a large payload.
 
+== Compatibility with APIM
+
+|===
+|Plugin version | APIM version
+
+| 2.x and upper               | 3.10.x to latest
+| Up to 1.x                   | Up to 3.9.x
+|===
+
 === Policy identifier
 
 You can enable or disable the policy with policy identifier `retry`.
