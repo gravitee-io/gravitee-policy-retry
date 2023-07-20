@@ -1,3 +1,10 @@
+## [2.1.3](https://github.com/gravitee-io/gravitee-policy-retry/compare/2.1.2...2.1.3) (2023-07-20)
+
+
+### Bug Fixes
+
+* update policy description ([21a75cc](https://github.com/gravitee-io/gravitee-policy-retry/commit/21a75cc22eb756f8eefb97f1c57a22eda1155eb6))
+
 ## [2.1.2](https://github.com/gravitee-io/gravitee-policy-retry/compare/2.1.1...2.1.2) (2022-05-30)
 
 
