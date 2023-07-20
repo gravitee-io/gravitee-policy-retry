@@ -31,9 +31,7 @@ NOTE: To replay a request with a payload, the gateway stores it in memory. We re
 
 |===
 |Plugin version | APIM version
-
-| 2.x and upper               | 3.10.x to latest
-| Up to 1.x                   | Up to 3.9.x
+| 2.x           | All supported versions
 |===
 
 === Policy identifier
