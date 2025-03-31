@@ -15,6 +15,14 @@
  */
 package io.gravitee.policy.retry;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
+import static com.github.tomakehurst.wiremock.client.WireMock.ok;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import io.gravitee.apim.gateway.tests.sdk.AbstractPolicyTest;
@@ -27,14 +35,6 @@ import io.vertx.rxjava3.core.http.HttpClient;
 import io.vertx.rxjava3.core.http.HttpClientRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.notFound;
-import static com.github.tomakehurst.wiremock.client.WireMock.ok;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Thibaud AVENIER (yann.tavernier at graviteesource.com)
@@ -72,7 +72,6 @@ class RetryPolicyIntegrationTest extends AbstractPolicyTest<RetryPolicy, RetryPo
                 .willReturn(ok())
         );
 
-
         client
             .rxRequest(HttpMethod.GET, "/test")
             .flatMap(HttpClientRequest::rxSend)
@@ -84,7 +83,6 @@ class RetryPolicyIntegrationTest extends AbstractPolicyTest<RetryPolicy, RetryPo
                 return true;
             })
             .assertNoErrors();
-
 
         wiremock.verify(3, getRequestedFor(urlPathEqualTo("/endpoint")));
     }
@@ -119,7 +117,6 @@ class RetryPolicyIntegrationTest extends AbstractPolicyTest<RetryPolicy, RetryPo
         wiremock.stubFor(
             WireMock.get("/endpoint").inScenario("retry").whenScenarioStateIs("thirdCall").willReturn(aResponse().withStatus(508))
         );
-
 
         client
             .rxRequest(HttpMethod.GET, "/test")
@@ -211,7 +208,6 @@ class RetryPolicyIntegrationTest extends AbstractPolicyTest<RetryPolicy, RetryPo
                 .willSetStateTo("thirdCall")
         );
         wiremock.stubFor(WireMock.get("/endpoint").inScenario("retry").whenScenarioStateIs("thirdCall").willReturn(notFound()));
-
 
         client
             .rxRequest(HttpMethod.GET, "/test-last-response")
