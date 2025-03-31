@@ -41,8 +41,8 @@ import org.junit.jupiter.api.Test;
  * @author GraviteeSource Team
  */
 @GatewayTest(v2ExecutionMode = ExecutionMode.V3)
-@DeployApi("/apis/retry.json")
-class RetryPolicyIntegrationTest extends AbstractPolicyTest<RetryPolicy, RetryPolicyConfiguration> {
+@DeployApi("/apis/v2/retry.json")
+class RetryPolicyV3IntegrationTest extends AbstractPolicyTest<RetryPolicyV3, RetryPolicyConfiguration> {
 
     @Test
     @DisplayName("Should succeed before max retries")
@@ -180,7 +180,7 @@ class RetryPolicyIntegrationTest extends AbstractPolicyTest<RetryPolicy, RetryPo
     }
 
     @Test
-    @DeployApi("/apis/retry-last-response.json")
+    @DeployApi("/apis/v2/retry-last-response.json")
     @DisplayName("Should fail after too many conditions failure and return last response")
     void shouldFailAfterTooManyConditionFailureAndReturnLastResponse(HttpClient client) throws InterruptedException {
         wiremock.stubFor(
@@ -225,7 +225,7 @@ class RetryPolicyIntegrationTest extends AbstractPolicyTest<RetryPolicy, RetryPo
     }
 
     @Test
-    @DeployApi("/apis/retry-last-response.json")
+    @DeployApi("/apis/v2/retry-last-response.json")
     @DisplayName("Should fail after too many timeout failures and does not return last response")
     void shouldFailAfterTimeoutAndReturnLastResponse(HttpClient client) throws InterruptedException {
         wiremock.stubFor(
