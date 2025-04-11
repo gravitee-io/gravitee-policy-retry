@@ -46,10 +46,10 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class RetryPolicyV3 {
 
-    private final RetryPolicyConfiguration configuration;
+    protected final RetryPolicyConfiguration configuration;
 
-    private static final String CIRCUIT_BREAKER_NAME = "retry-policy";
-    private static final String TEMPLATE_RESPONSE_VARIABLE = "response";
+    protected static final String CIRCUIT_BREAKER_NAME = "retry-policy";
+    protected static final String TEMPLATE_RESPONSE_VARIABLE = "response";
 
     public RetryPolicyV3(RetryPolicyConfiguration configuration) {
         this.configuration = configuration;

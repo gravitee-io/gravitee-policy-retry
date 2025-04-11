@@ -1,0 +1,72 @@
+{
+    "id": "v4-retry",
+    "name": "v4-retry",
+    "apiVersion": "1.0",
+    "definitionVersion": "4.0.0",
+    "type": "proxy",
+    "analytics": {
+        "enabled": false
+    },
+    "listeners": [
+        {
+            "type": "http",
+            "paths": [
+                {
+                    "path": "/v4-retry-delay"
+                }
+            ],
+            "entrypoints": [
+                {
+                    "type": "http-proxy"
+                }
+            ]
+        }
+    ],
+    "endpointGroups": [
+        {
+            "name": "default",
+            "type": "http-proxy",
+            "endpoints": [
+                {
+                    "name": "default",
+                    "type": "http-proxy",
+                    "weight": 1,
+                    "inheritConfiguration": false,
+                    "configuration": {
+                        "target": "http://localhost:8080/endpoint"
+                    }
+                }
+            ]
+        }
+    ],
+    "flows": [
+        {
+            "name": "flow-1",
+            "enabled": true,
+            "selectors": [
+                {
+                    "type": "http",
+                    "path": "/",
+                    "pathOperator": "STARTS_WITH"
+                }
+            ],
+            "request": [
+                {
+                    "name": "Retry",
+                    "description": "",
+                    "enabled": true,
+                    "policy": "retry",
+                    "configuration": {
+                        "condition": "{#response.status > 500}",
+                        "maxRetries": 3,
+                        "delay": 1500,
+                        "timeout": 1000
+                    }
+                }
+            ],
+            "response": [],
+            "subscribe": [],
+            "publish": []
+        }
+    ]
+}
