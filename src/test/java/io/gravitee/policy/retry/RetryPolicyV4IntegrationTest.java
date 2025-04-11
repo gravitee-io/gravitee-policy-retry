@@ -25,28 +25,26 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
-import io.gravitee.apim.gateway.tests.sdk.AbstractPolicyTest;
 import io.gravitee.apim.gateway.tests.sdk.annotations.DeployApi;
 import io.gravitee.apim.gateway.tests.sdk.annotations.GatewayTest;
 import io.gravitee.definition.model.ExecutionMode;
-import io.gravitee.policy.retry.configuration.RetryPolicyConfiguration;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.rxjava3.core.http.HttpClient;
 import io.vertx.rxjava3.core.http.HttpClientRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
-/**
- * @author Thibaud AVENIER (yann.tavernier at graviteesource.com)
- * @author GraviteeSource Team
- */
-@GatewayTest(v2ExecutionMode = ExecutionMode.V3)
-@DeployApi("/apis/v2/retry.json")
-class RetryPolicyV3IntegrationTest extends AbstractPolicyTest<RetryPolicy, RetryPolicyConfiguration> {
+@Slf4j
+@GatewayTest(v2ExecutionMode = ExecutionMode.V4_EMULATION_ENGINE)
+class RetryPolicyV4IntegrationTest extends V4EngineTest {
 
-    @Test
+    @ParameterizedTest
     @DisplayName("Should succeed before max retries")
-    void shouldSucceedBeforeMaxRetries(HttpClient client) {
+    @DeployApi({ "/apis/v4/retry.json", "/apis/v2/retry.json" })
+    @ValueSource(strings = { "/v4-retry", "/test" })
+    void shouldSucceedBeforeMaxRetries(String requestPath, HttpClient client) {
         wiremock.stubFor(
             get("/endpoint")
                 .inScenario("retry")
@@ -66,7 +64,7 @@ class RetryPolicyV3IntegrationTest extends AbstractPolicyTest<RetryPolicy, Retry
         );
 
         client
-            .rxRequest(HttpMethod.GET, "/test")
+            .rxRequest(HttpMethod.GET, requestPath)
             .flatMap(HttpClientRequest::rxSend)
             .test()
             .awaitDone(10, SECONDS)
@@ -80,9 +78,11 @@ class RetryPolicyV3IntegrationTest extends AbstractPolicyTest<RetryPolicy, Retry
         wiremock.verify(3, getRequestedFor(urlPathEqualTo("/endpoint")));
     }
 
-    @Test
+    @ParameterizedTest
+    @DeployApi({ "/apis/v4/retry.json", "/apis/v2/retry.json" })
+    @ValueSource(strings = { "/v4-retry", "/test" })
     @DisplayName("Should fail after max retries")
-    void shouldFailAfterMaxRetries(HttpClient client) {
+    void shouldFailAfterMaxRetries(String requestPath, HttpClient client) {
         wiremock.stubFor(
             get("/endpoint")
                 .inScenario("retry")
@@ -107,7 +107,7 @@ class RetryPolicyV3IntegrationTest extends AbstractPolicyTest<RetryPolicy, Retry
         wiremock.stubFor(get("/endpoint").inScenario("retry").whenScenarioStateIs("thirdCall").willReturn(aResponse().withStatus(508)));
 
         client
-            .rxRequest(HttpMethod.GET, "/test")
+            .rxRequest(HttpMethod.GET, requestPath)
             .flatMap(HttpClientRequest::rxSend)
             .test()
             .awaitDone(10, SECONDS)
@@ -121,9 +121,11 @@ class RetryPolicyV3IntegrationTest extends AbstractPolicyTest<RetryPolicy, Retry
         wiremock.verify(4, getRequestedFor(urlPathEqualTo("/endpoint")));
     }
 
-    @Test
+    @ParameterizedTest
+    @DeployApi({ "/apis/v4/retry.json", "/apis/v2/retry.json" })
+    @ValueSource(strings = { "/v4-retry", "/test" })
     @DisplayName("Should fail after all retries in timeout")
-    void shouldFailAfterTimeout(HttpClient client) {
+    void shouldFailAfterTimeout(String requestPath, HttpClient client) {
         wiremock.stubFor(
             get("/endpoint")
                 .inScenario("retry")
@@ -148,7 +150,7 @@ class RetryPolicyV3IntegrationTest extends AbstractPolicyTest<RetryPolicy, Retry
         wiremock.stubFor(get("/endpoint").inScenario("retry").whenScenarioStateIs("thirdCall").willReturn(ok().withFixedDelay(600)));
 
         client
-            .rxRequest(HttpMethod.GET, "/test")
+            .rxRequest(HttpMethod.GET, requestPath)
             .flatMap(HttpClientRequest::rxSend)
             .test()
             .awaitDone(10, SECONDS)
@@ -162,10 +164,11 @@ class RetryPolicyV3IntegrationTest extends AbstractPolicyTest<RetryPolicy, Retry
         wiremock.verify(4, getRequestedFor(urlPathEqualTo("/endpoint")));
     }
 
-    @Test
-    @DeployApi("/apis/v2/retry-last-response.json")
+    @ParameterizedTest
+    @ValueSource(strings = { "/v4-retry-last-response", "/test-last-response" })
+    @DeployApi({ "/apis/v4/retry-last-response.json", "/apis/v2/retry-last-response.json" })
     @DisplayName("Should fail after too many conditions failure and return last response")
-    void shouldFailAfterTooManyConditionFailureAndReturnLastResponse(HttpClient client) {
+    void shouldFailAfterTooManyConditionFailureAndReturnLastResponse(String requestUrl, HttpClient client) {
         wiremock.stubFor(
             get("/endpoint").inScenario("retry").whenScenarioStateIs(Scenario.STARTED).willReturn(notFound()).willSetStateTo("firstCall")
         );
@@ -178,7 +181,7 @@ class RetryPolicyV3IntegrationTest extends AbstractPolicyTest<RetryPolicy, Retry
         wiremock.stubFor(get("/endpoint").inScenario("retry").whenScenarioStateIs("thirdCall").willReturn(notFound()));
 
         client
-            .rxRequest(HttpMethod.GET, "/test-last-response")
+            .rxRequest(HttpMethod.GET, requestUrl)
             .flatMap(HttpClientRequest::rxSend)
             .test()
             .awaitDone(10, SECONDS)
@@ -192,10 +195,11 @@ class RetryPolicyV3IntegrationTest extends AbstractPolicyTest<RetryPolicy, Retry
         wiremock.verify(4, getRequestedFor(urlPathEqualTo("/endpoint")));
     }
 
-    @Test
-    @DeployApi("/apis/v2/retry-last-response.json")
+    @ParameterizedTest
+    @ValueSource(strings = { "/v4-retry-last-response", "/test-last-response" })
+    @DeployApi({ "/apis/v4/retry-last-response.json", "/apis/v2/retry-last-response.json" })
     @DisplayName("Should fail after too many timeout failures and does not return last response")
-    void shouldFailAfterTimeoutAndReturnLastResponse(HttpClient client) {
+    void shouldFailAfterTimeoutAndReturnLastResponse(String requestUrl, HttpClient client) {
         wiremock.stubFor(
             get("/endpoint")
                 .inScenario("retry")
@@ -220,7 +224,7 @@ class RetryPolicyV3IntegrationTest extends AbstractPolicyTest<RetryPolicy, Retry
         wiremock.stubFor(get("/endpoint").inScenario("retry").whenScenarioStateIs("thirdCall").willReturn(ok().withFixedDelay(600)));
 
         client
-            .rxRequest(HttpMethod.GET, "/test-last-response")
+            .rxRequest(HttpMethod.GET, requestUrl)
             .flatMap(HttpClientRequest::rxSend)
             .test()
             .awaitDone(10, SECONDS)
@@ -234,10 +238,11 @@ class RetryPolicyV3IntegrationTest extends AbstractPolicyTest<RetryPolicy, Retry
         wiremock.verify(4, getRequestedFor(urlPathEqualTo("/endpoint")));
     }
 
-    @Test
-    @DeployApi("/apis/v2/retry-delay.json")
-    @DisplayName("Should fail after too many timeout failures and does not return last response")
-    void shouldDelayRetryRequests(HttpClient client) {
+    @ParameterizedTest
+    @DisplayName("Should delay retry requests")
+    @DeployApi({ "/apis/v4/retry-delay.json", "/apis/v2/retry-delay.json" })
+    @ValueSource(strings = { "/v4-retry-delay", "/test-delay" })
+    void shouldDelayRetryRequests(String requestPath, HttpClient client) {
         wiremock.stubFor(
             get("/endpoint")
                 .inScenario("retry")
@@ -256,7 +261,7 @@ class RetryPolicyV3IntegrationTest extends AbstractPolicyTest<RetryPolicy, Retry
 
         var startTime = System.currentTimeMillis();
         client
-            .rxRequest(HttpMethod.GET, "/test-delay")
+            .rxRequest(HttpMethod.GET, requestPath)
             .flatMap(HttpClientRequest::rxSend)
             .test()
             .awaitDone(10, SECONDS)
@@ -269,8 +274,8 @@ class RetryPolicyV3IntegrationTest extends AbstractPolicyTest<RetryPolicy, Retry
 
         var elapsedTime = System.currentTimeMillis() - startTime;
         assertThat(elapsedTime)
-            .isGreaterThanOrEqualTo(3000)
-            .describedAs("Elapsed time should be at least 3 seconds (1.5 seconds between each retry)");
+            .describedAs("Elapsed time should be at least 3 seconds (1.5 seconds between each retry)")
+            .isGreaterThanOrEqualTo(3000);
         wiremock.verify(3, getRequestedFor(urlPathEqualTo("/endpoint")));
     }
 }
