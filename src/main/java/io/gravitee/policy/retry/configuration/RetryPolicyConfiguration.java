@@ -16,11 +16,13 @@
 package io.gravitee.policy.retry.configuration;
 
 import io.gravitee.policy.api.PolicyConfiguration;
+import lombok.Data;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
+@Data
 public class RetryPolicyConfiguration implements PolicyConfiguration {
 
     private String condition;
@@ -32,44 +34,4 @@ public class RetryPolicyConfiguration implements PolicyConfiguration {
     private long delay;
 
     private boolean lastResponse;
-
-    public String getCondition() {
-        return condition;
-    }
-
-    public void setCondition(String condition) {
-        this.condition = condition;
-    }
-
-    public long getTimeout() {
-        return timeout;
-    }
-
-    public void setTimeout(long timeout) {
-        this.timeout = timeout;
-    }
-
-    public int getMaxRetries() {
-        return maxRetries;
-    }
-
-    public void setMaxRetries(int maxRetries) {
-        this.maxRetries = maxRetries;
-    }
-
-    public long getDelay() {
-        return delay;
-    }
-
-    public void setDelay(long delay) {
-        this.delay = delay;
-    }
-
-    public boolean isLastResponse() {
-        return lastResponse;
-    }
-
-    public void setLastResponse(boolean lastResponse) {
-        this.lastResponse = lastResponse;
-    }
 }
