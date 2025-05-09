@@ -1,3 +1,10 @@
+# [2.2.0](https://github.com/gravitee-io/gravitee-policy-retry/compare/2.1.3...2.2.0) (2025-05-09)
+
+
+### Features
+
+* support for reactive engine ([a39e6ad](https://github.com/gravitee-io/gravitee-policy-retry/commit/a39e6ad7e33588dac27c6e4d3f6a44775a046e16))
+
 ## [2.1.3](https://github.com/gravitee-io/gravitee-policy-retry/compare/2.1.2...2.1.3) (2023-07-20)
 
 
