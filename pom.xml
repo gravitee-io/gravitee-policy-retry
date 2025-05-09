@@ -34,7 +34,7 @@
     </parent>
 
     <properties>
-        <gravitee-apim-bom.version>4.6.10</gravitee-apim-bom.version>
+        <gravitee-apim-bom.version>4.7.5</gravitee-apim-bom.version>
         <maven-assembly-plugin.version>3.7.1</maven-assembly-plugin.version>
         <resilience4j-retry.version>2.2.0</resilience4j-retry.version>
         <!-- Property used by the publication job in CI-->
