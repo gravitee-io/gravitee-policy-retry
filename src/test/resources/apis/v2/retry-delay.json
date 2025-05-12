@@ -1,0 +1,44 @@
+{
+    "id": "my-api-delay",
+    "name": "my-api",
+    "gravitee": "2.0.0",
+    "proxy": {
+        "context_path": "/test-delay",
+        "endpoints": [
+            {
+                "name": "default",
+                "target": "http://localhost:8080/endpoint",
+                "http": {
+                    "connectTimeout": 2000,
+                    "readTimeout": 60000
+                }
+            }
+        ]
+    },
+    "flows": [
+        {
+            "name": "flow-1",
+            "methods": ["GET"],
+            "enabled": true,
+            "path-operator": {
+                "path": "/",
+                "operator": "STARTS_WITH"
+            },
+            "pre": [
+                {
+                    "name": "Retry",
+                    "description": "",
+                    "enabled": true,
+                    "policy": "retry",
+                    "configuration": {
+                        "condition": "{#response.status > 500}",
+                        "maxRetries": 3,
+                        "delay": 1500,
+                        "timeout": 500
+                    }
+                }
+            ],
+            "post": []
+        }
+    ]
+}
