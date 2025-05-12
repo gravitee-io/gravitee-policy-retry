@@ -1,3 +1,15 @@
+# [3.0.0](https://github.com/gravitee-io/gravitee-policy-retry/compare/2.1.3...3.0.0) (2025-05-12)
+
+
+### Features
+
+* support for reactive engine ([c4c44fc](https://github.com/gravitee-io/gravitee-policy-retry/commit/c4c44fc45e1da3d8549c263531932d559afa322e))
+
+
+### BREAKING CHANGES
+
+* require at least APIM 4.6
+
 ## [2.1.3](https://github.com/gravitee-io/gravitee-policy-retry/compare/2.1.2...2.1.3) (2023-07-20)
 
 
