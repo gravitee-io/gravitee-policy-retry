@@ -37,13 +37,16 @@ import io.vertx.circuitbreaker.CircuitBreaker;
 import io.vertx.circuitbreaker.CircuitBreakerOptions;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Vertx;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author David BRASSELY (david.brassely at graviteesource.com)
  * @author GraviteeSource Team
  */
+@Slf4j
 public class RetryPolicyV3 {
 
     protected final RetryPolicyConfiguration configuration;
@@ -97,14 +100,20 @@ public class RetryPolicyV3 {
             final AtomicInteger counter = new AtomicInteger(-1);
             final AtomicReference<ProxyResponse> proxyResponseRef = new AtomicReference<>();
 
+            final Buffer[] cachedBody = { Buffer.buffer() };
+            final AtomicBoolean requestEnded = new AtomicBoolean(false);
+
+            readStream.bodyHandler(buffer -> cachedBody[0].appendBuffer(buffer)).endHandler(v -> requestEnded.set(true));
+
             circuitBreaker.execute(
                 event -> {
                     counter.incrementAndGet();
 
+                    ReadStream<Buffer> replayStream = new ReplayingReadStream(cachedBody[0], requestEnded.get());
                     // Listen for the response from backend
                     invoker.invoke(
                         context,
-                        readStream,
+                        replayStream,
                         connection -> {
                             connection
                                 .exceptionHandler(event::fail)
@@ -127,7 +136,7 @@ public class RetryPolicyV3 {
                                         } else {
                                             // Cleanup by cancelling the proxyResponse (request tracker, ...).
                                             proxyResponse.cancel();
-                                            event.fail("");
+                                            event.fail("Retry triggered");
                                         }
                                     } else {
                                         event.complete(new RetryProxyConnection(connection, proxyResponse));
@@ -136,7 +145,7 @@ public class RetryPolicyV3 {
                         }
                     );
                 },
-                (io.vertx.core.Handler<AsyncResult<RetryProxyConnection>>) event -> {
+                (AsyncResult<RetryProxyConnection> event) -> {
                     circuitBreaker.close();
 
                     if (event.succeeded()) {
