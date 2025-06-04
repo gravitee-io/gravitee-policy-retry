@@ -37,7 +37,6 @@ import io.vertx.circuitbreaker.CircuitBreaker;
 import io.vertx.circuitbreaker.CircuitBreakerOptions;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Vertx;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
@@ -100,20 +99,45 @@ public class RetryPolicyV3 {
             final AtomicInteger counter = new AtomicInteger(-1);
             final AtomicReference<ProxyResponse> proxyResponseRef = new AtomicReference<>();
 
-            final Buffer[] cachedBody = { Buffer.buffer() };
-            final AtomicBoolean requestEnded = new AtomicBoolean(false);
+            String method = context.request().method().name().toUpperCase();
+            boolean hasPayload = method.equals("POST") || method.equals("PUT") || method.equals("PATCH");
 
-            readStream.bodyHandler(buffer -> cachedBody[0].appendBuffer(buffer)).endHandler(v -> requestEnded.set(true));
+            if (!hasPayload) {
+                doInvoke(context, readStream, handler, counter, proxyResponseRef, circuitBreaker);
+                return;
+            }
 
+            RetryReadStream retryStream = new RetryReadStream(readStream);
+            context.request().pause();
+
+            if (!retryStream.hasEnded()) {
+                log.info("Request body is not finished yet. Waiting for it to finish before invoking the backend...");
+                retryStream.endHandler(v -> {
+                    log.info("Request body has been fully processed. Proceeding to call backend...");
+                    doInvoke(context, retryStream, handler, counter, proxyResponseRef, circuitBreaker);
+                });
+                retryStream.resume();
+                context.request().resume();
+                return;
+            }
+            doInvoke(context, retryStream, handler, counter, proxyResponseRef, circuitBreaker);
+        }
+
+        private void doInvoke(
+            ExecutionContext context,
+            ReadStream<Buffer> retryStream,
+            Handler<ProxyConnection> handler,
+            AtomicInteger counter,
+            AtomicReference<ProxyResponse> proxyResponseRef,
+            CircuitBreaker circuitBreaker
+        ) {
             circuitBreaker.execute(
                 event -> {
                     counter.incrementAndGet();
-
-                    ReadStream<Buffer> replayStream = new ReplayingReadStream(cachedBody[0], requestEnded.get());
                     // Listen for the response from backend
                     invoker.invoke(
                         context,
-                        replayStream,
+                        retryStream,
                         connection -> {
                             connection
                                 .exceptionHandler(event::fail)
@@ -128,7 +152,10 @@ public class RetryPolicyV3 {
                                             // Note: we must create a EvaluableResponse and a ProxyResponseWrapper to make sure classloader will be well released when the api is undeployed.
                                             new EvaluableResponse(new ProxyResponseWrapper(proxyResponse))
                                         );
-                                    boolean retry = context.getTemplateEngine().getValue(configuration.getCondition(), boolean.class);
+
+                                    boolean retry =
+                                        proxyResponse.status() >= 500 &&
+                                        context.getTemplateEngine().getValue(configuration.getCondition(), boolean.class);
 
                                     if (retry) {
                                         if (configuration.isLastResponse() && counter.get() == configuration.getMaxRetries()) {
@@ -136,12 +163,16 @@ public class RetryPolicyV3 {
                                         } else {
                                             // Cleanup by cancelling the proxyResponse (request tracker, ...).
                                             proxyResponse.cancel();
+                                            retryStream.resume();
+                                            context.request().resume();
                                             event.fail("Retry triggered");
                                         }
                                     } else {
                                         event.complete(new RetryProxyConnection(connection, proxyResponse));
                                     }
                                 });
+                            retryStream.resume();
+                            context.request().resume();
                         }
                     );
                 },
