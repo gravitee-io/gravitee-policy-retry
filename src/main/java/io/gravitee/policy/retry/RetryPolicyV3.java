@@ -77,7 +77,7 @@ public class RetryPolicyV3 {
         @Override
         public void invoke(ExecutionContext context, ReadStream<Buffer> readStream, Handler<ProxyConnection> handler) {
             Vertx vertx = context.getComponent(Vertx.class);
-
+            RetryRequest retryRequest = (RetryRequest) context.request();
             CircuitBreaker circuitBreaker = CircuitBreaker.create(
                 CIRCUIT_BREAKER_NAME,
                 vertx,
@@ -100,6 +100,9 @@ public class RetryPolicyV3 {
             circuitBreaker.execute(
                 event -> {
                     counter.incrementAndGet();
+
+                    // Mark the request as 'retry' if any.
+                    retryRequest.markRetry(counter.get() > 0);
 
                     // Listen for the response from backend
                     invoker.invoke(
