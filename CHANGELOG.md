@@ -1,3 +1,12 @@
+## [2.1.4](https://github.com/gravitee-io/gravitee-policy-retry/compare/2.1.3...2.1.4) (2025-06-06)
+
+
+### Bug Fixes
+
+* applied retry policy fix from master ([11b08a3](https://github.com/gravitee-io/gravitee-policy-retry/commit/11b08a366fe1e142036c254a4c00f72d35393820))
+* testcase fix ([e0ec20f](https://github.com/gravitee-io/gravitee-policy-retry/commit/e0ec20f92f33069f188bb757ef5081a6fa9133ea))
+* testcase fixes ([953a301](https://github.com/gravitee-io/gravitee-policy-retry/commit/953a30164160239439551a6f364fac9762ebc05d))
+
 ## [2.1.3](https://github.com/gravitee-io/gravitee-policy-retry/compare/2.1.2...2.1.3) (2023-07-20)
 
 
