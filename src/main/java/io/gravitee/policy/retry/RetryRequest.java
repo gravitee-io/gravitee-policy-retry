@@ -31,12 +31,27 @@ import io.gravitee.gateway.api.stream.ReadStream;
 class RetryRequest extends RequestWrapper {
 
     private Buffer buffer;
+    private boolean retry;
     private boolean resumed = false;
     private Handler<Buffer> bodyHandler;
     private Handler<Void> endHandler;
+    private boolean retryBuffer;
 
     RetryRequest(Request request) {
         super(request);
+    }
+
+    /**
+     * Marks whether the request is a retry or not.
+     * <p>
+     * If set to {@code true}, the cached body can be sent to the backend,
+     * allowing the request to resume consumption from where it left off.
+     *
+     * @param retry {@code true} to enable retry with cached body, {@code false} otherwise.
+     */
+    public void markRetry(boolean retry) {
+        this.retry = retry;
+        this.retryBuffer = retry;
     }
 
     @Override
@@ -63,20 +78,37 @@ class RetryRequest extends RequestWrapper {
     }
 
     /**
-     * <code>resume</code> method may be called multiple times depending on the failover max-retry configuration.
-     * At the very first call, the underlying / wrapped request is normally resumed. For the next calls, we are simply
-     * pushing the buffer content and then call end to signal the end of the stream.
+     * Resumes the processing of the HTTP request body stream.
+     * <p>
+     * If the request is not marked for retry, this simply resumes the underlying request stream.
+     * <p>
+     * In case of a retry, this method ensures that any cached request body (which may be partially read)
+     * is first delivered to the body handler before resuming or completing the request:
+     * <ul>
+     *   <li>If a cached buffer exists and is eligible to be replayed, it is passed to the body handler.</li>
+     *   <li>If the request body has already been fully consumed, the {@code endHandler} is invoked directly.</li>
+     *   <li>Otherwise, the request stream is resumed to continue processing remaining content.</li>
+     * </ul>
      */
     @Override
     public ReadStream<Buffer> resume() {
-        if (!resumed) {
+        if (!retry) {
             request.resume();
             resumed = true;
         } else {
-            if (bodyHandler != null && buffer != null) {
+            // This is a retry. We first need to send the cached request body needed (could be partial, if the whole request body hasn't been consumed).
+            if (bodyHandler != null && buffer != null && retryBuffer) {
                 bodyHandler.handle(buffer);
+                retryBuffer = false;
             }
-            endHandler.handle(null);
+
+            if (request.ended()) {
+                // The request body is entirely consumed, we must call the endHandler.
+                endHandler.handle(null);
+            } else {
+                // There are remaining thing to consume on the request, resuming.
+                request.resume();
+            }
         }
 
         return this;
