@@ -1,3 +1,10 @@
+## [3.0.1](https://github.com/gravitee-io/gravitee-policy-retry/compare/3.0.0...3.0.1) (2025-06-06)
+
+
+### Bug Fixes
+
+* properly resume request when retrying ([996e8e2](https://github.com/gravitee-io/gravitee-policy-retry/commit/996e8e286e85e4aced98d5ee2ec152a2bdc3a113))
+
 # [3.0.0](https://github.com/gravitee-io/gravitee-policy-retry/compare/2.1.3...3.0.0) (2025-05-12)
 
 
