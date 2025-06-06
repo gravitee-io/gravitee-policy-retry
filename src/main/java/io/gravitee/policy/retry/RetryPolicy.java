@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2015 The Gravitee team (http://gravitee.io)
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *         http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -37,6 +37,7 @@ import io.vertx.circuitbreaker.CircuitBreaker;
 import io.vertx.circuitbreaker.CircuitBreakerOptions;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Vertx;
+
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -77,6 +78,7 @@ public class RetryPolicy {
         @Override
         public void invoke(ExecutionContext context, ReadStream<Buffer> readStream, Handler<ProxyConnection> handler) {
             Vertx vertx = context.getComponent(Vertx.class);
+            RetryRequest retryRequest = (RetryRequest) context.request();
 
             CircuitBreaker circuitBreaker = CircuitBreaker.create(
                 CIRCUIT_BREAKER_NAME,
@@ -100,6 +102,9 @@ public class RetryPolicy {
             circuitBreaker.execute(
                 event -> {
                     counter.incrementAndGet();
+
+                    // Mark the request as 'retry' if any.
+                    retryRequest.markRetry(counter.get() > 0);
 
                     // Listen for the response from backend
                     invoker.invoke(
