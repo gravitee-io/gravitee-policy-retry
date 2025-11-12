@@ -82,17 +82,16 @@ public class RetryPolicy extends RetryPolicyV3 implements HttpPolicy {
             // Setting it to -1 prevent counting this first call as a retry.
             final AtomicInteger counter = new AtomicInteger(-1);
 
-            return Completable
-                .defer(() -> {
-                    counter.incrementAndGet();
-                    var originalEndpoint = ctx.getAttribute(ATTR_REQUEST_ENDPOINT);
-                    // EndpointInvoker overrides the request endpoint. We need to set it back to the original state to retry properly
-                    ctx.setAttribute(ATTR_REQUEST_ENDPOINT, originalEndpoint);
-                    // Entrypoint connectors skip response handling if there is an error. In the case of a retry, we need to reset the failure.
-                    ctx.removeInternalAttribute(ATTR_INTERNAL_EXECUTION_FAILURE);
-                    // Consume the body and ignore it. Consuming it with .body() method internally enables caching of chunks, which is mandatory to retry the request in case of failure.
-                    return ctx.request().body().ignoreElement().andThen(invoker.invoke(ctx));
-                })
+            return Completable.defer(() -> {
+                counter.incrementAndGet();
+                var originalEndpoint = ctx.getAttribute(ATTR_REQUEST_ENDPOINT);
+                // EndpointInvoker overrides the request endpoint. We need to set it back to the original state to retry properly
+                ctx.setAttribute(ATTR_REQUEST_ENDPOINT, originalEndpoint);
+                // Entrypoint connectors skip response handling if there is an error. In the case of a retry, we need to reset the failure.
+                ctx.removeInternalAttribute(ATTR_INTERNAL_EXECUTION_FAILURE);
+                // Consume the body and ignore it. Consuming it with .body() method internally enables caching of chunks, which is mandatory to retry the request in case of failure.
+                return ctx.request().body().ignoreElement().andThen(invoker.invoke(ctx));
+            })
                 .andThen(
                     Completable.defer(() -> {
                         ctx.getTemplateEngine().getTemplateContext().setVariable(TEMPLATE_RESPONSE_VARIABLE, ctx.response());
