@@ -1,3 +1,15 @@
+# [4.0.0](https://github.com/gravitee-io/gravitee-policy-retry/compare/3.1.0...4.0.0) (2025-11-14)
+
+
+### Features
+
+* attach the cause to execution failure when retry has failed ([a877727](https://github.com/gravitee-io/gravitee-policy-retry/commit/a87772745bc906affc62bb4198206c16ad7c2349))
+
+
+### BREAKING CHANGES
+
+* Requires APIM 4.9
+
 # [3.1.0](https://github.com/gravitee-io/gravitee-policy-retry/compare/3.0.1...3.1.0) (2025-11-12)
 
 
