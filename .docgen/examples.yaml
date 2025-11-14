@@ -1,0 +1,20 @@
+genExamples: []
+rawExamples:
+    - title: Retry when response code is 5xx
+      templateRef: v4-api-proxy
+      language: json
+      properties:
+          phase: request
+      file: .docgen/examples/response-5xx.json
+    - title: Specifying a delay between retries
+      templateRef: v4-api-proxy
+      language: json
+      properties:
+          phase: request
+      file: .docgen/examples/delay.json
+    - title: Returns the last attempt response, even if it's a failure
+      templateRef: v4-api-proxy
+      language: json
+      properties:
+          phase: request
+      file: .docgen/examples/lastResponse.json
