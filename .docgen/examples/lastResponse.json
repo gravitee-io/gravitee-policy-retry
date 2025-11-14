@@ -1,0 +1,6 @@
+{
+    "condition": "{#response.status > 500}",
+    "maxRetries": 3,
+    "timeout": 1000,
+    "lastResponse": true
+}
