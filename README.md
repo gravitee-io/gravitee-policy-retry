@@ -33,6 +33,7 @@ The `retry` policy can be applied to the following API types and flow phases.
 * `PROXY`
 * `MCP PROXY`
 * `LLM PROXY`
+* `A2A PROXY`
 
 ### Supported flow phases:
 
