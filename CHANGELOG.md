@@ -1,3 +1,10 @@
+# [4.1.0](https://github.com/gravitee-io/gravitee-policy-retry/compare/4.0.0...4.1.0) (2026-02-18)
+
+
+### Features
+
+* enable for A2A proxy ([5781f1c](https://github.com/gravitee-io/gravitee-policy-retry/commit/5781f1c85b36c02d2d4fff9020aadf9eb9e552a8))
+
 # [4.0.0](https://github.com/gravitee-io/gravitee-policy-retry/compare/3.1.0...4.0.0) (2025-11-14)
 
 
