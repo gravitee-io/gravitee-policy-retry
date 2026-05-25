@@ -83,10 +83,12 @@ public class RetryPolicy extends RetryPolicyV3 implements HttpPolicy {
             // Setting it to -1 prevent counting this first call as a retry.
             final AtomicInteger counter = new AtomicInteger(-1);
 
+            // Capture once: the invoker mutates this attribute on each call, so re-reading inside defer would lose the original across retries.
+            final var originalEndpoint = ctx.getAttribute(ATTR_REQUEST_ENDPOINT);
+
             return Completable
                 .defer(() -> {
                     counter.incrementAndGet();
-                    var originalEndpoint = ctx.getAttribute(ATTR_REQUEST_ENDPOINT);
                     // EndpointInvoker overrides the request endpoint. We need to set it back to the original state to retry properly
                     ctx.setAttribute(ATTR_REQUEST_ENDPOINT, originalEndpoint);
                     // Entrypoint connectors skip response handling if there is an error. In the case of a retry, we need to reset the failure.
