@@ -183,6 +183,13 @@ Strikethrough text indicates that a version is deprecated.
 
 ## Changelog
 
+#### [4.1.1](https://github.com/gravitee-io/gravitee-policy-retry/compare/4.1.0...4.1.1) (2026-05-26)
+
+
+##### Bug Fixes
+
+* preserve dynamic routing endpoint across retries ([#63](https://github.com/gravitee-io/gravitee-policy-retry/issues/63)) ([286d342](https://github.com/gravitee-io/gravitee-policy-retry/commit/286d342508b4ab7c1b8fb883c0b3e235750526b2))
+
 ### [4.1.0](https://github.com/gravitee-io/gravitee-policy-retry/compare/4.0.0...4.1.0) (2026-02-18)
 
 
