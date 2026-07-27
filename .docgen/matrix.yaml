@@ -9,5 +9,9 @@ rows:
           java: 17
     - data:
           plugin: "4.x"
-          apim: "4.9.x and later"
+          apim: "4.9.x to 4.11.x"
+          java: 21
+    - data:
+          plugin: "5.x"
+          apim: "4.12.x and later"
           java: 21
