@@ -35,7 +35,6 @@ import io.gravitee.policy.retry.configuration.RetryPolicyConfiguration;
 import io.gravitee.policy.retry.el.ProxyResponseWrapper;
 import io.vertx.circuitbreaker.CircuitBreaker;
 import io.vertx.circuitbreaker.CircuitBreakerOptions;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Vertx;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -89,7 +88,7 @@ public class RetryPolicyV3 {
             );
 
             if (configuration.getDelay() > 0) {
-                circuitBreaker.retryPolicy(integer -> configuration.getDelay());
+                circuitBreaker.retryPolicy((failure, retryCount) -> configuration.getDelay());
             }
 
             // The circuit breaker is used for the first real call to the backend, before the retries.
@@ -97,49 +96,45 @@ public class RetryPolicyV3 {
             final AtomicInteger counter = new AtomicInteger(-1);
             final AtomicReference<ProxyResponse> proxyResponseRef = new AtomicReference<>();
 
-            circuitBreaker.execute(
-                event -> {
+            circuitBreaker
+                .<RetryProxyConnection>execute(event -> {
                     counter.incrementAndGet();
 
                     // Mark the request as 'retry' if any.
                     retryRequest.markRetry(counter.get() > 0);
 
                     // Listen for the response from backend
-                    invoker.invoke(
-                        context,
-                        readStream,
-                        connection -> {
-                            connection
-                                .exceptionHandler(event::fail)
-                                .responseHandler(proxyResponse -> {
-                                    // cancel the previous proxyResponse if it exists
-                                    cancelProxyResponse(proxyResponseRef.getAndSet(proxyResponse));
-                                    context
-                                        .getTemplateEngine()
-                                        .getTemplateContext()
-                                        .setVariable(
-                                            TEMPLATE_RESPONSE_VARIABLE,
-                                            // Note: we must create a EvaluableResponse and a ProxyResponseWrapper to make sure classloader will be well released when the api is undeployed.
-                                            new EvaluableResponse(new ProxyResponseWrapper(proxyResponse))
-                                        );
-                                    boolean retry = context.getTemplateEngine().getValue(configuration.getCondition(), boolean.class);
+                    invoker.invoke(context, readStream, connection -> {
+                        connection
+                            .exceptionHandler(event::fail)
+                            .responseHandler(proxyResponse -> {
+                                // cancel the previous proxyResponse if it exists
+                                cancelProxyResponse(proxyResponseRef.getAndSet(proxyResponse));
+                                context
+                                    .getTemplateEngine()
+                                    .getTemplateContext()
+                                    .setVariable(
+                                        TEMPLATE_RESPONSE_VARIABLE,
+                                        // Note: we must create a EvaluableResponse and a ProxyResponseWrapper to make sure classloader will be well released when the api is undeployed.
+                                        new EvaluableResponse(new ProxyResponseWrapper(proxyResponse))
+                                    );
+                                boolean retry = context.getTemplateEngine().evalNow(configuration.getCondition(), boolean.class);
 
-                                    if (retry) {
-                                        if (configuration.isLastResponse() && counter.get() == configuration.getMaxRetries()) {
-                                            event.complete(new RetryProxyConnection(connection, proxyResponse));
-                                        } else {
-                                            // Cleanup by cancelling the proxyResponse (request tracker, ...).
-                                            proxyResponse.cancel();
-                                            event.fail("");
-                                        }
-                                    } else {
+                                if (retry) {
+                                    if (configuration.isLastResponse() && counter.get() == configuration.getMaxRetries()) {
                                         event.complete(new RetryProxyConnection(connection, proxyResponse));
+                                    } else {
+                                        // Cleanup by cancelling the proxyResponse (request tracker, ...).
+                                        proxyResponse.cancel();
+                                        event.fail("");
                                     }
-                                });
-                        }
-                    );
-                },
-                (io.vertx.core.Handler<AsyncResult<RetryProxyConnection>>) event -> {
+                                } else {
+                                    event.complete(new RetryProxyConnection(connection, proxyResponse));
+                                }
+                            });
+                    });
+                })
+                .onComplete(event -> {
                     circuitBreaker.close();
 
                     if (event.succeeded()) {
@@ -153,8 +148,7 @@ public class RetryPolicyV3 {
                         handler.handle(connection);
                         connection.sendResponse();
                     }
-                }
-            );
+                });
         }
 
         private void cancelProxyResponse(ProxyResponse previous) {

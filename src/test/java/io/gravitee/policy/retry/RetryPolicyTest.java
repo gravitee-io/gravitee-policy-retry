@@ -70,18 +70,17 @@ class RetryPolicyTest {
         AtomicReference<String> stored = new AtomicReference<>(ORIGINAL_ENDPOINT);
         when(ctx.<String>getAttribute(ATTR_REQUEST_ENDPOINT)).thenAnswer(inv -> stored.get());
         doAnswer(inv -> {
-                stored.set(inv.getArgument(1));
-                return null;
-            })
+            stored.set(inv.getArgument(1));
+            return null;
+        })
             .when(ctx)
             .setAttribute(eq(ATTR_REQUEST_ENDPOINT), any());
 
         // Delegate mimics HttpEndpointInvoker: strips the prefix from the attribute, then errors to trigger a retry.
-        when(delegate.invoke(ctx))
-            .thenAnswer(inv -> {
-                ctx.setAttribute(ATTR_REQUEST_ENDPOINT, STRIPPED_ENDPOINT);
-                return Completable.error(new RuntimeException("simulated upstream failure"));
-            });
+        when(delegate.invoke(ctx)).thenAnswer(inv -> {
+            ctx.setAttribute(ATTR_REQUEST_ENDPOINT, STRIPPED_ENDPOINT);
+            return Completable.error(new RuntimeException("simulated upstream failure"));
+        });
 
         new RetryPolicy.RetryInvoker(delegate, configuration).invoke(ctx).test().awaitDone(5, TimeUnit.SECONDS);
 

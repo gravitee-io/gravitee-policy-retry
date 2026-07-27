@@ -28,11 +28,12 @@ import io.gravitee.gateway.reactive.api.invoker.HttpInvoker;
 import io.gravitee.gateway.reactive.api.policy.http.HttpPolicy;
 import io.gravitee.policy.retry.configuration.RetryPolicyConfiguration;
 import io.reactivex.rxjava3.core.Completable;
+import io.reactivex.rxjava3.core.Flowable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import lombok.extern.slf4j.Slf4j;
+import lombok.CustomLog;
 
-@Slf4j
+@CustomLog
 public class RetryPolicy extends RetryPolicyV3 implements HttpPolicy {
 
     private static final long DEFAULT_TIMEOUT = 1000L;
@@ -86,16 +87,15 @@ public class RetryPolicy extends RetryPolicyV3 implements HttpPolicy {
             // Capture once: the invoker mutates this attribute on each call, so re-reading inside defer would lose the original across retries.
             final var originalEndpoint = ctx.getAttribute(ATTR_REQUEST_ENDPOINT);
 
-            return Completable
-                .defer(() -> {
-                    counter.incrementAndGet();
-                    // EndpointInvoker overrides the request endpoint. We need to set it back to the original state to retry properly
-                    ctx.setAttribute(ATTR_REQUEST_ENDPOINT, originalEndpoint);
-                    // Entrypoint connectors skip response handling if there is an error. In the case of a retry, we need to reset the failure.
-                    ctx.removeInternalAttribute(ATTR_INTERNAL_EXECUTION_FAILURE);
-                    // Consume the body and ignore it. Consuming it with .body() method internally enables caching of chunks, which is mandatory to retry the request in case of failure.
-                    return ctx.request().body().ignoreElement().andThen(invoker.invoke(ctx));
-                })
+            return Completable.defer(() -> {
+                counter.incrementAndGet();
+                // EndpointInvoker overrides the request endpoint. We need to set it back to the original state to retry properly
+                ctx.setAttribute(ATTR_REQUEST_ENDPOINT, originalEndpoint);
+                // Entrypoint connectors skip response handling if there is an error. In the case of a retry, we need to reset the failure.
+                ctx.removeInternalAttribute(ATTR_INTERNAL_EXECUTION_FAILURE);
+                // Consume the body and ignore it. Consuming it with .body() method internally enables caching of chunks, which is mandatory to retry the request in case of failure.
+                return ctx.request().body().ignoreElement().andThen(invoker.invoke(ctx));
+            })
                 .andThen(
                     Completable.defer(() -> {
                         ctx.getTemplateEngine().getTemplateContext().setVariable(TEMPLATE_RESPONSE_VARIABLE, ctx.response());
@@ -113,8 +113,14 @@ public class RetryPolicy extends RetryPolicyV3 implements HttpPolicy {
                 .timeout(timeout, timeUnit)
                 .compose(RxHelper.retryCompletable(maxRetries, (int) delay, timeUnit))
                 .onErrorResumeNext(t -> {
+                    // Any error path here (timeout, exhausted retries, condition failure) may leave
+                    // ctx.response().chunks() pointing to a FlowableProxyResponse that was never initialized -- for a
+                    // timed-out attempt the backend never answered before the timeout disposed the invoker, so its ctx is
+                    // null. Reset the chunks unconditionally, otherwise sending the 502 error response subscribes to it
+                    // and throws NPE.
+                    ctx.response().chunks(Flowable.empty());
                     String apiId = ctx.getAttribute(ATTR_API);
-                    log.info("[apiId={}] Retry failed after {} retries", apiId, configuration.getMaxRetries());
+                    ctx.withLogger(log).info("[apiId={}] Retry failed after {} retries", apiId, configuration.getMaxRetries());
                     return ctx.interruptWith(new ExecutionFailure(502).cause(t));
                 });
         }

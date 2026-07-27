@@ -30,12 +30,12 @@
     <parent>
         <groupId>io.gravitee</groupId>
         <artifactId>gravitee-parent</artifactId>
-        <version>23.4.1</version>
+        <version>24.0.2</version>
     </parent>
 
     <properties>
         <!-- Gravitee dependencies version -->
-        <gravitee-apim-bom.version>4.9.0</gravitee-apim-bom.version>
+        <gravitee-apim-bom.version>4.12.0</gravitee-apim-bom.version>
 
         <!-- Other dependencies version -->
         <resilience4j-retry.version>2.2.0</resilience4j-retry.version>
@@ -73,6 +73,11 @@
             <artifactId>gravitee-policy-api</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>io.gravitee.node</groupId>
+            <artifactId>gravitee-node-logging</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
         <!-- Vert.x -->
         <dependency>
@@ -94,16 +99,27 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- Logging -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <scope>test</scope>
+            <artifactId>logback-core</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <!-- Test scope -->
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
             <scope>test</scope>
         </dependency>
 
