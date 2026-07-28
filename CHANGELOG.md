@@ -1,3 +1,15 @@
+# [5.0.0](https://github.com/gravitee-io/gravitee-policy-retry/compare/4.1.1...5.0.0) (2026-07-28)
+
+
+* fix!: compatibility to vertx 5 ([96578a0](https://github.com/gravitee-io/gravitee-policy-retry/commit/96578a0436cdc91c22b9a345853bfcef8f4a48ac))
+
+
+### BREAKING CHANGES
+
+* depends on APIM 4.12
+
+https://gravitee.atlassian.net/browse/APIM-14815
+
 ## [4.1.1](https://github.com/gravitee-io/gravitee-policy-retry/compare/4.1.0...4.1.1) (2026-05-26)
 
 
